@@ -2,18 +2,16 @@
 #include <ucontext.h>
 #include <stdio.h>
 #include <time.h>
+#include "../include/support.h"
 #include "../include/cthread.h"
 #include "../include/cdata.h"
-#include "../include/support.h"
 #include "../include/context.h"
-
 
 PFILA2 ready, running, blocked, semaphores;
 
 int executeNewThread(){
   if(ready == NULL) return ERROR;
-
-  TCB_t * itThread, nextThread == NULL;
+  TCB_t *itThread, *nextThread = NULL;
   int nextTicket;
   while(nextThread == NULL){ //Enquanto a fila de threads sorteadas estiver vazia
     FirstFila2(ready);
@@ -45,10 +43,12 @@ int executeNewThread(){
   }
 
   AppendFila2(running ,nextThread);  //Coloca a thread na fila de execução
-  setContext(nextThread->context);  //Executa a thread
+  setcontext(&(nextThread->context));  //Executa a thread
+  return 0;
+
 }
 
-int block(){
+int blockThread(){
   if(running == NULL) return ERROR; //Se a fila de execução estiver fazia, estoura erro
   //Retira a thread em execução da fila RUNNING e coloca na fila READY
   FirstFila2(running);
@@ -58,6 +58,8 @@ int block(){
   createContext(NULL, wasRunningThread, NULL);
   DeleteAtIteratorFila2(running);
   AppendFila2(blocked, (void*)wasRunningThread);
+  return 0;
+
 }
 
 int stopExecution(){
@@ -70,10 +72,14 @@ int stopExecution(){
   createContext(NULL, wasRunningThread, NULL);
   DeleteAtIteratorFila2(running);
   AppendFila2(ready, (void*)wasRunningThread);
+
+  return 0;
 }
 
-int ready(TCB_t * thread){
+int readyThread(TCB_t * thread){
   //TODO: adicionar contexto de escalonador em uc_link
-  if(ready === NULL) CreateFila2(ready);
+  if(ready == NULL) CreateFila2(ready);
   AppendFila2(ready, thread);
+
+  return SUCCESS;
 }

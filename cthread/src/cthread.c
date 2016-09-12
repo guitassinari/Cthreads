@@ -6,6 +6,7 @@
 #include "../include/cthread.h"
 #include "../include/context.h"
 #include "../include/cdata.h"
+#include "../include/scheduler.h"
 
 int tid = 0;
 PFILA2 ready, running, blocked, semaphores;
@@ -15,30 +16,30 @@ void teste();
 
 int main(){
   //TODO: criar thread main
-  ccreate(&teste, 0);
-  ccreate(&teste, 0);
+  ccreate((void*)&teste, 0);
+  ccreate((void*)&teste, 0);
+
+  return 0;
 }
 
 //TODO: testar adição na fila;
 int ccreate (void* (*start)(void*), void *arg){
     if(start == NULL) return ERROR;
     TCB_t * newThread = malloc(sizeof(TCB_t));
-    if (newThread == NULL) return ERROR;
-    ready(&newThread);
+    newThread->tid = newTid();
     newThread->ticket = newTicket();
     newThread->state = PROCST_APTO;
-    newThread->tid = newTid();
 
-    ucontext_t threadContext
     //TODO: UC_LINK
+    ucontext_t threadContext;
     createContext(start, &threadContext, NULL);
     newThread->context = threadContext;
-    // printf("TID: %d | TCKT : %d\n", newThread->tid, newThread->ticket);
-    return threadTid;
+    readyThread(&newThread);
+    return newThread->tid;
 }
 
 int cyield(void){
-    stopExecution()
+    stopExecution();
     executeNewThread();
     //Insere a nova thread na fila RUNNING
     //TODO: Pegar a próxima thread do escalonador;
@@ -90,7 +91,7 @@ int csignal(csem_t *sem){
 }
 
 int cidentify(char *name, int size){
-
+  return 0;
 }
 
 int newTid(){
@@ -109,12 +110,13 @@ void teste(){
 
 //procura um tid dentro de uma fila
 int findTidFila2(int tid, PFILA2 pfila2){
+  if(pfila2 == NULL) return ERROR;
   FirstFila2(pfila2);
-  TCB_t * thread = GetAtIteratorFila2(sem->fila);
-  while(thread->tid !== tid){
-      if(NextFila2(pfila2) !== 0) return ERROR;
-      thread = GetAtIteratorFila2(sem->fila);
-  }
+  TCB_t * thread;
+  do{
+      thread = GetAtIteratorFila2(pfila2);
+      if(NextFila2(pfila2) != 0) return ERROR;
+  } while(thread->tid != tid || thread != NULL);
 
   return 0;
 }

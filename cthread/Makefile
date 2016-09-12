@@ -20,7 +20,7 @@ all: cthread.o
 	ar rcs $(LIB_DIR)/libcthread.a $(BIN_DIR)/cthread.o $(BIN_DIR)/support.o
 
 cthread.o:
-	$(CC) -o $(BIN_DIR)/cthread.o  $(BIN_DIR)/support.o $(SRC_DIR)/cthread.c $(SRC_DIR)/context.c -Wall
+	$(CC) -o $(BIN_DIR)/cthread.o $(BIN_DIR)/support.o $(SRC_DIR)/cthread.c $(SRC_DIR)/context.c $(SRC_DIR)/scheduler.c -Wall
 
 clean:
 	rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/cthread.o
