@@ -16,6 +16,7 @@
 #define SUCCESS 0
 #define ERROR -1
 
+
 /* N�O ALTERAR ESSA struct */
 typedef struct s_TCB {
 	int		tid; 		// identificador da thread
