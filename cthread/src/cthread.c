@@ -7,9 +7,9 @@
 #include "../include/cdata.h"
 #include "../include/scheduler.h"
 
-#define STACK_SIZE 1024*64
+#define STACK_SIZE 1024*32
 
-int tid = 0;
+int * tid;
 
 int newTid();
 int newTicket();
@@ -29,37 +29,32 @@ int main(){
 
 //TODO: testar adição na fila;
 int ccreate (void* (*start)(void*), void *arg){
-    if(start == NULL) return ERROR;
+  if(start == NULL) return ERROR;
+  ucontext_t threadContext;
+  createContext(&threadContext, start);
 
-    ucontext_t returnContext;
-    getcontext(&returnContext);
-    makecontext(&returnContext, (void*)&sortAndExecuteThread, 0);
+  TCB_t * newThread = malloc(sizeof(TCB_t));
+  createThread(newThread, threadContext);
+  readyThread(newThread);
+  return newThread->tid;
+}
 
-    //TODO: UC_LINK
-    ucontext_t threadContext;
-    getcontext(&threadContext);
-    threadContext.uc_stack.ss_sp = malloc(STACK_SIZE);
-    threadContext.uc_stack.ss_size = STACK_SIZE;
-    threadContext.uc_stack.ss_flags = 0;
-    threadContext.uc_link = &returnContext;
-    makecontext(&threadContext, (void*)start, 0);
-
-    TCB_t * newThread = malloc(sizeof(TCB_t));
-    newThread->tid = newTid();
-    newThread->ticket = newTicket();
-    newThread->context = threadContext;
-    readyThread(newThread);
-    return newThread->tid;
+void createThread(TCB_t * thread, ucontext_t context){
+  thread->tid = newTid();
+  thread->ticket = newTicket();
+  thread->context = context;
 }
 
 int cyield(void){
-  int isCommingBack = 1;
+  int * isCommingBack = malloc(sizeof(int));
+  *isCommingBack = 1;
   if(stopExecution() == SUCCESS){
-    if(isCommingBack == 1){
-      isCommingBack = 0;
+    if(*isCommingBack == 1){
+      *isCommingBack = 0;
       sortAndExecuteThread();
     }
   }
+  free(isCommingBack);
   return 1;
 }
 
@@ -109,8 +104,12 @@ int cyield(void){
 // }
 
 int newTid(){
-  tid++;
-  return tid;
+  if(tid == NULL){
+    tid = malloc(sizeof(int));
+    *tid = 0;
+  }
+  *tid++;
+  return *tid;
 }
 
 //TODO: testar criação de ticket randomico entre 0 e 255
@@ -128,15 +127,19 @@ void teste2(){
   printf("Pos yield \n");
 }
 
-// //procura um tid dentro de uma fila
-// int findTidFila2(int tid, PFILA2 pfila2){
-//   if(pfila2 == NULL) return ERROR;
-//   FirstFila2(pfila2);
-//   TCB_t * thread;
-//   do{
-//       thread = GetAtIteratorFila2(pfila2);
-//       if(NextFila2(pfila2) != 0) return ERROR;
-//   } while(thread->tid != tid || thread != NULL);
-//
-//   return 0;
-// }
+void createContext(ucontext_t * context, void* (*start)(void*)){
+  ucontext_t returnContext;
+  getcontext(&returnContext);
+  returnContext.uc_stack.ss_sp = malloc(STACK_SIZE);
+  returnContext.uc_stack.ss_size = STACK_SIZE;
+  returnContext.uc_stack.ss_flags = 0;
+  context->uc_link = 0;
+  makecontext(&returnContext, (void*)&sortAndExecuteThread, 0);
+
+  getcontext(context);
+  context->uc_stack.ss_sp = malloc(STACK_SIZE);
+  context->uc_stack.ss_size = STACK_SIZE;
+  context->uc_stack.ss_flags = 0;
+  context->uc_link = &returnContext;
+  makecontext(context, (void*)start, 0);
+}

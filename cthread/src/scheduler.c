@@ -15,33 +15,32 @@ CreateFila2(blocked);
 TCB_t * sortThread();
 
 int sortAndExecuteThread(){
-  TCB_t * nextThread = sortThread();
-  executeThread(nextThread);
+  TCB_t nextThread;
+  sortThread(&nextThread);
+  printf("%d",nextThread.ticket);
+  executeThread(&nextThread);
   return SUCCESS;
 }
 
-TCB_t * sortThread(){
-  TCB_t * sortedThread = NULL; //Thread sorteada para ser executada
+TCB_t * sortThread(TCB_t * thread){
   TCB_t * itThread = NULL;  //Thread de iteração
-  while(sortedThread == NULL){
+  while(thread == NULL){
     int sortedTicket = newTicket(); //Sorteia um novo ticket
     FirstFila2(&ready); //Posiciona-se no inicio da fila de aptos
     do {  //Varre a fila até o fim procurando pelo ticket sorteado
       itThread = (TCB_t*)GetAtIteratorFila2(&ready);
       if(itThread == NULL) break;
-      if((itThread->ticket == sortedTicket) && (sortedThread == NULL || (sortedThread->tid < itThread->tid))){
+      if((itThread->ticket == sortedTicket) && (thread == NULL || (thread->tid < itThread->tid))){
         /*
           Se encontrar o ticket e:
            não houver uma thread ja sorteada,
            ou o tid da atual for maior que a ultima sorteada,
           a thread atual será a nova thread sorteada
         */
-        sortedThread = itThread;
+        thread = itThread;
       }
     }while(NextFila2(&ready) == SUCCESS);
   }
-
-  return sortedThread;
 }
 
 int stopExecution(){
