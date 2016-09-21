@@ -10,7 +10,6 @@
 #define STACK_SIZE 1024*32
 
 int * tid;
-
 int newTid();
 int newTicket();
 void teste();
@@ -30,8 +29,8 @@ int main(){
 //TODO: testar adição na fila;
 int ccreate (void* (*start)(void*), void *arg){
   if(start == NULL) return ERROR;
-  ucontext_t threadContext;
-  createContext(&threadContext, start);
+  ucontext_t * threadContext = malloc(sizeof(ucontext_t));
+  createContext(threadContext, start);
 
   TCB_t * newThread = malloc(sizeof(TCB_t));
   createThread(newThread, threadContext);
@@ -39,10 +38,10 @@ int ccreate (void* (*start)(void*), void *arg){
   return newThread->tid;
 }
 
-void createThread(TCB_t * thread, ucontext_t context){
+void createThread(TCB_t * thread, ucontext_t * context){
   thread->tid = newTid();
   thread->ticket = newTicket();
-  thread->context = context;
+  thread->context = *context;
 }
 
 int cyield(void){
@@ -123,23 +122,23 @@ void teste(){
 
 void teste2(){
   printf("\numa funcao de teste 2 ");
-  cyield();
+  // cyield();
   printf("Pos yield \n");
 }
 
 void createContext(ucontext_t * context, void* (*start)(void*)){
-  ucontext_t returnContext;
-  getcontext(&returnContext);
-  returnContext.uc_stack.ss_sp = malloc(STACK_SIZE);
-  returnContext.uc_stack.ss_size = STACK_SIZE;
-  returnContext.uc_stack.ss_flags = 0;
+  ucontext_t * returnContext = malloc(sizeof(ucontext_t));
+  getcontext(returnContext);
+  returnContext->uc_stack.ss_sp = malloc(STACK_SIZE);
+  returnContext->uc_stack.ss_size = STACK_SIZE;
+  returnContext->uc_stack.ss_flags = 0;
   context->uc_link = 0;
-  makecontext(&returnContext, (void*)&sortAndExecuteThread, 0);
+  makecontext(returnContext, (void*)&sortAndExecuteThread, 0);
 
   getcontext(context);
   context->uc_stack.ss_sp = malloc(STACK_SIZE);
   context->uc_stack.ss_size = STACK_SIZE;
   context->uc_stack.ss_flags = 0;
-  context->uc_link = &returnContext;
+  context->uc_link = returnContext;
   makecontext(context, (void*)start, 0);
 }
