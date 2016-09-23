@@ -9,7 +9,7 @@
 
 #define STACK_SIZE 1024*32
 
-int * tid;
+int tid = 0;
 int newTid();
 int newTicket();
 void teste();
@@ -20,7 +20,8 @@ int main(){
   ccreate((void*)teste, 0);
   ccreate((void*)teste, 0);
   ccreate((void*)teste, 0);
-  ccreate((void*)teste2, 0);
+  ccreate((void*)teste, 0);
+  ccreate((void*)teste, 0);
 
   sortAndExecuteThread();
   return 0;
@@ -47,7 +48,7 @@ void createThread(TCB_t * thread, ucontext_t * context){
 int cyield(void){
   int * isCommingBack = malloc(sizeof(int));
   *isCommingBack = 1;
-  if(stopExecution() == SUCCESS){
+  if(yield() == SUCCESS){
     if(*isCommingBack == 1){
       *isCommingBack = 0;
       sortAndExecuteThread();
@@ -103,12 +104,8 @@ int cyield(void){
 // }
 
 int newTid(){
-  if(tid == NULL){
-    tid = malloc(sizeof(int));
-    *tid = 0;
-  }
-  *tid++;
-  return *tid;
+  tid++;
+  return tid;
 }
 
 //TODO: testar criação de ticket randomico entre 0 e 255
@@ -133,7 +130,7 @@ void createContext(ucontext_t * context, void* (*start)(void*)){
   returnContext->uc_stack.ss_size = STACK_SIZE;
   returnContext->uc_stack.ss_flags = 0;
   context->uc_link = 0;
-  makecontext(returnContext, (void*)&sortAndExecuteThread, 0);
+  makecontext(returnContext, (void*)&finishExecution, 0);
 
   getcontext(context);
   context->uc_stack.ss_sp = malloc(STACK_SIZE);

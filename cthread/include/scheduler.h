@@ -1,4 +1,5 @@
 int sortAndExecuteThread();
+void finishExecution();
 // int blockThread();
 // int stopExecution();
 int readyThread(TCB_t * thread);
