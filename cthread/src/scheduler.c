@@ -65,9 +65,8 @@ int yield(){
   if(FirstFila2(running) != SUCCESS) return ERROR;
   thread = GetAtIteratorFila2(running);
   DeleteAtIteratorFila2(running);
-  thread->state = PROCST_APTO;
+  readyThread(thread);
   getcontext(&(thread->context));
-  AppendFila2(ready, thread);
   return SUCCESS;
 }
 

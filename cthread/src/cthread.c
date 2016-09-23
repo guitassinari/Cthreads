@@ -19,9 +19,17 @@ int main(){
   printf("\ninicio\n");
   ccreate((void*)teste, 0);
   ccreate((void*)teste, 0);
+  ccreate((void*)teste2, 0);
+  ccreate((void*)teste, 0);
+  ccreate((void*)teste2, 0);
   ccreate((void*)teste, 0);
   ccreate((void*)teste, 0);
   ccreate((void*)teste, 0);
+  ccreate((void*)teste, 0);
+  ccreate((void*)teste2, 0);
+  ccreate((void*)teste, 0);
+
+
 
   sortAndExecuteThread();
   return 0;
@@ -46,15 +54,13 @@ void createThread(TCB_t * thread, ucontext_t * context){
 }
 
 int cyield(void){
-  int * isCommingBack = malloc(sizeof(int));
-  *isCommingBack = 1;
+  int isCommingBack = 1;
   if(yield() == SUCCESS){
-    if(*isCommingBack == 1){
-      *isCommingBack = 0;
+    if(isCommingBack == 1){
+      isCommingBack = 0;
       sortAndExecuteThread();
     }
   }
-  free(isCommingBack);
   return 1;
 }
 
@@ -119,7 +125,7 @@ void teste(){
 
 void teste2(){
   printf("\numa funcao de teste 2 ");
-  // cyield();
+  cyield();
   printf("Pos yield \n");
 }
 
