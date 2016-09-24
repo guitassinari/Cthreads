@@ -90,29 +90,37 @@ int readyThread(TCB_t * thread){
   AppendFila2(ready, thread);
 }
 
-int blockThread(TCB_t * thread){
+TCB_t * blockThread(){
   if(blocked == NULL){
     blocked = malloc(sizeof(PFILA2));
     CreateFila2(blocked);
   }
+  FirstFila2(running);
+  TCB_t * thread = (TCB_t*)GetAtIteratorFila2(running);
+  RemoveThreadFila2(running, thread->tid);
   thread->state = PROCST_BLOQ;
   AppendFila2(blocked, thread);
-  return SUCCESS;
+  return thread;
 }
 
 int RemoveThreadFila2(PFILA2 fila, int tid){
+  SearchThreadByTidFila2(fila, tid);
+  DeleteAtIteratorFila2(fila);
+  return SUCCESS;
+}
+
+int SearchThreadByTidFila2(PFILA2 fila, int tid){
   TCB_t * itThread = NULL;
   if(FirstFila2(fila) != SUCCESS) return ERROR; //Posiciona-se no inicio da fila de aptos
   do {  //Varre a fila até o fim procurando pelo tid
     itThread = (TCB_t*)GetAtIteratorFila2(fila);
     if(itThread == NULL) break;
     if(itThread->tid == tid){ //Se achar o tid, deleta da fila e retorna a função
-      itThread = (TCB_t*)GetAtIteratorFila2(fila);
-      DeleteAtIteratorFila2(fila);
       return SUCCESS;
       break;
     }
   }while(NextFila2(fila) == SUCCESS);
+  return ERROR;
 }
 
 void printReady(){
