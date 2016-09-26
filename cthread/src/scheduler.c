@@ -6,19 +6,25 @@
 #include "../include/cthread.h"
 #include "../include/cdata.h"
 
+typedef struct s_join {
+  int thread;
+  int threadToWait;
+} joint;
+
 ucontext_t MAIN_CONTEXT;
-PFILA2 ready, running, blocked, finished;
+PFILA2 ready, running, blocked, finished, joints;
 CreateFila2(running);
 CreateFila2(blocked);
 CreateFila2(finished);
 
 TCB_t * sortThread();
+TCB_t * blockThread();
 
 int sortAndExecuteThread(){
-  TCB_t * nextThread = sortThread(nextThread);
+  TCB_t * nextThread = sortThread(nextThread); //Sorteia uma nova thread para ser executada
   if(nextThread != NULL){
-    RemoveThreadFila2(ready, nextThread->tid);
-    executeThread(nextThread);
+    RemoveThreadFila2(ready, nextThread->tid); //Remove a thread da fila de aptos
+    executeThread(nextThread); //Executa a thread
   }
   return SUCCESS;
 }
@@ -47,75 +53,113 @@ TCB_t * sortThread(){
   return sorted;
 }
 
-void finishExecution(){
-  if(finished == NULL){
-    finished = malloc(sizeof(PFILA2));
-    CreateFila2(finished);
+int waitForThread(int tid){
+  initFila(joints);
+  joint * join;
+  FirstFila2(joints);
+  do {  //Varre a fila de espera procurando por alguma thread esteja esperando a thread solicitada
+    join = (joint*)GetAtIteratorFila2(joints);
+    if(join == NULL) break;
+    if(join->threadToWait == tid){ //Se ja houver alguem na espera, retorna erro, pois não podem haver duas threads esperando a mesma thread
+      return ERROR;
+      break;
+    }
+  }while(NextFila2(joints) == SUCCESS);
+  //Caso não hajam problemas, bloqueia a thread atual e a coloca na fila de espera da thread solicitada
+  TCB_t * currentThread = blockThread();
+  join = malloc(sizeof(joint));
+  join->thread = currentThread->tid;
+  join->threadToWait = tid;
+  AppendFila2(joints, join); //Registro na fila de espera
+  int * isCommingBack = malloc(sizeof(int));
+  *isCommingBack = 1;
+  getcontext(&(currentThread->context)); //A execução continuará daqui quando a thread for liberada
+  if(*isCommingBack == 1){
+    *isCommingBack = 0;
+    sortAndExecuteThread(); //Sorteia a proxima thread a ser executada
   }
-  TCB_t * thread;
-  if(FirstFila2(running) != SUCCESS) return ERROR;
-  thread = (TCB_t*)GetAtIteratorFila2(running);
-  DeleteAtIteratorFila2(running);
-  AppendFila2(finished, thread);
-  sortAndExecuteThread();
+  free(isCommingBack);
+  return SUCCESS;
+}
+
+void finishExecution(){
+  initFila(finished);
+  initFila(joints);
+  FirstFila2(running);
+  TCB_t * thread = (TCB_t*)GetAtIteratorFila2(running); //Pega a thread da fila de execução
+  joint * join;
+  FirstFila2(joints); //Posiciona-se no inicio da fila
+  do {  //Varre a fila até o fim procurando pelo tid
+    join = (joint*)GetAtIteratorFila2(joints);
+    if(join == NULL) break;
+    if(join->threadToWait == thread->tid){ //Se achar o tid, já tem alguem esperando. Retornar erro
+      SearchThreadByTidFila2(blocked, join->thread);
+      TCB_t * blockedThread = (TCB_t*)GetAtIteratorFila2(blocked);
+      DeleteAtIteratorFila2(blocked);
+      readyThread(blockedThread);
+    }
+  }while(NextFila2(joints) == SUCCESS);
+  DeleteAtIteratorFila2(running); //Remove a thread da fila de execução
+  AppendFila2(finished, thread); //Coloca a thread na fila de terminados
+  sortAndExecuteThread(); //Executa uma nova thread.
 }
 
 int yield(){
   TCB_t * thread;
   if(FirstFila2(running) != SUCCESS) return ERROR;
-  thread = GetAtIteratorFila2(running);
-  DeleteAtIteratorFila2(running);
-  readyThread(thread);
-  getcontext(&(thread->context));
+  thread = GetAtIteratorFila2(running); //pega a thread da fila de execução
+  DeleteAtIteratorFila2(running); //Remove a thread da fila de execução
+  readyThread(thread); //Coloca a thread na fila de aptos
+  getcontext(&(thread->context)); //Atualiza o contexto da thread
   return SUCCESS;
 }
 
 int executeThread(TCB_t * thread){
-  if(running == NULL){
-    running = malloc(sizeof(PFILA2));
-    CreateFila2(running);
-  }
+  initFila(running);
   thread->state = PROCST_EXEC;
-  AppendFila2(running, thread);
-  setcontext(&(thread->context));
+  AppendFila2(running, thread); //Coloca a thread na fila de execução
+  setcontext(&(thread->context)); //Executa o contexto da thread
 }
 
 //adiciona a thread na fila de aptos para execução
 int readyThread(TCB_t * thread){
-  if(ready == NULL){
-    ready = malloc(sizeof(PFILA2));
-    CreateFila2(ready);
-  }
+  initFila(ready);
   thread->state = PROCST_APTO;
   AppendFila2(ready, thread);
 }
 
 TCB_t * blockThread(){
-  if(blocked == NULL){
+  if(blocked == NULL){ //inicializa a fila de bloqueados, se necessário
     blocked = malloc(sizeof(PFILA2));
     CreateFila2(blocked);
   }
   FirstFila2(running);
-  TCB_t * thread = (TCB_t*)GetAtIteratorFila2(running);
-  RemoveThreadFila2(running, thread->tid);
+  TCB_t * thread = (TCB_t*)GetAtIteratorFila2(running); //Pega o primeiro(e único) thread da fila de em execução
+  RemoveThreadFila2(running, thread->tid); //Retira a thread da fila de execuçãp
   thread->state = PROCST_BLOQ;
-  AppendFila2(blocked, thread);
-  return thread;
+  AppendFila2(blocked, thread); //Coloca a thread na fila de bloqueados
+  return thread; //Retorna a thread que foi bloqueada
 }
 
 int RemoveThreadFila2(PFILA2 fila, int tid){
-  SearchThreadByTidFila2(fila, tid);
-  DeleteAtIteratorFila2(fila);
+  if(SearchThreadByTidFila2(fila, tid) == ERROR) return ERROR;
+  if(DeleteAtIteratorFila2(fila) == ERROR) return ERROR;
+  return SUCCESS;
+}
+
+int unblockThread(TCB_t * thread){
+  RemoveThreadFila2(blocked, thread->tid); //Remove a thread da fila de bloqueados
+  readyThread(thread); //Adiciona a thread à fila de aptos
   return SUCCESS;
 }
 
 int SearchThreadByTidFila2(PFILA2 fila, int tid){
   TCB_t * itThread = NULL;
-  if(FirstFila2(fila) != SUCCESS) return ERROR; //Posiciona-se no inicio da fila de aptos
+  if(FirstFila2(fila) != SUCCESS) return ERROR; //Posiciona-se no inicio da fila
   do {  //Varre a fila até o fim procurando pelo tid
     itThread = (TCB_t*)GetAtIteratorFila2(fila);
     if(itThread == NULL) break;
-    if(itThread->tid == tid){ //Se achar o tid, deleta da fila e retorna a função
+    if(itThread->tid == tid){ //Se achar o tid, termina a busca
       return SUCCESS;
       break;
     }
@@ -123,15 +167,10 @@ int SearchThreadByTidFila2(PFILA2 fila, int tid){
   return ERROR;
 }
 
-void printReady(){
-  TCB_t * itThread = NULL;  //Thread de iteração
-  if(FirstFila2(ready)) return NULL; //Posiciona-se no inicio da fila de aptos
-  printf("Aptos : %d - ", &ready);
-  do {  //Varre a fila até o fim procurando pelo ticket sorteado
-    itThread = (TCB_t*)GetAtIteratorFila2(ready);
-    if(itThread != NULL){
-      printf(" %d -", itThread->tid);
-    }
-  }while(NextFila2(ready) == SUCCESS);
-  printf("\n");
+int initFila(PFILA2 fila){
+  if(fila == NULL){ //inicializa a fila de aptos, se necessário
+    fila = malloc(sizeof(PFILA2));
+    CreateFila2(fila);
+  }
+  return SUCCESS;
 }

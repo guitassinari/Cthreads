@@ -12,34 +12,27 @@
 int tid = 0;
 int newTid();
 int newTicket();
-void teste();
-void teste2();
 
 int main(){
-  printf("\ninicio\n");
-  ccreate((void*)teste, 0);
-  ccreate((void*)teste, 0);
-  ccreate((void*)teste2, 0);
-  ccreate((void*)teste, 0);
-  ccreate((void*)teste2, 0);
-  ccreate((void*)teste, 0);
-  ccreate((void*)teste, 0);
-  ccreate((void*)teste, 0);
-  ccreate((void*)teste, 0);
-  ccreate((void*)teste2, 0);
-  ccreate((void*)teste, 0);
-
-
-
-  sortAndExecuteThread();
-  return 0;
+  TCB_t * mainThread = malloc(sizeof(TCB_t));
+  mainThread->tid = 0;
+  mainThread->ticket = newTicket();
+  ucontext_t * context = malloc(sizeof(ucontext_t));
+  int * isCommingBack = malloc(sizeof(int));
+  *isCommingBack = 1;
+  getcontext(&context);
+  if(*isCommingBack == 1){
+    *isCommingBack = 0;
+    mainThread->context = *context;
+    readyThread(mainThread);
+  }
+  free(isCommingBack);
 }
 
-//TODO: testar adição na fila;
 int ccreate (void* (*start)(void*), void *arg){
   if(start == NULL) return ERROR;
-  ucontext_t * threadContext = malloc(sizeof(ucontext_t));
-  createContext(threadContext, start);
+  ucontext_t * threadContext = malloc(sizeof(ucontext_t)); //Aloca memória para um contexto
+  createContext(threadContext, start); //Cria o contexto para a nova thread
 
   TCB_t * newThread = malloc(sizeof(TCB_t));
   createThread(newThread, threadContext);
@@ -56,10 +49,10 @@ void createThread(TCB_t * thread, ucontext_t * context){
 int cyield(void){
   int * isCommingBack = malloc(sizeof(int));
   *isCommingBack = 1;
-  if(yield() == SUCCESS){
+  if(yield() == SUCCESS){ //Libera a execução e passa a thread para o estado apto
     if(*isCommingBack == 1){
       *isCommingBack = 0;
-      sortAndExecuteThread();
+      sortAndExecuteThread(); //Executa uma nova thread
     }
   }
   free(isCommingBack);
@@ -67,49 +60,50 @@ int cyield(void){
 }
 
 int cjoin(int tid){
-  //TODO: trocar context para thread da TID passada
+  waitForThread(tid);
   return ERROR;
 }
 
 int cwait(csem_t *sem){
   sem->count = sem->count - 1;
-  if(sem->count < 0){
+  if(sem->count < 0){ //Se o recurso estiver alocado
     int * isCommingBack = malloc(sizeof(int));
     *isCommingBack = 1;
-    TCB_t * thread = blockThread();
-    AppendFila2(sem->fila, thread);
-    getcontext(&(thread->context));
-      if(*isCommingBack == 1){
-        *isCommingBack = 0;
-        sortAndExecuteThread();
-      }
+    TCB_t * thread = blockThread(); //Bloqueia a thread
+    AppendFila2(sem->fila, thread); //Coloca a thread na fila do semáforo
+    getcontext(&(thread->context)); //salva o contexto
+    if(*isCommingBack == 1){
+      *isCommingBack = 0;
+      sortAndExecuteThread(); //Executa uma nova thread
+    }
+    //Quando esta thread for executada novamente, isCommingBack será zero, e ela continuará sua execução normalmente
     free(isCommingBack);
   }
   return SUCCESS;
 }
 
 int csignal(csem_t *sem){
-  sem->count = sem->count + 1;
-  if(sem->count < 1){
+  sem->count = sem->count + 1; //Incrementa o contador do semaforo
+  if(sem->count < 1){ //Se ainda tiver alguém esperando na fila, desbloqueia.
     FirstFila2(sem->fila);
-    TCB_t * thread = (TCB_t*)GetAtIteratorFila2(sem->fila);
-    DeleteAtIteratorFila2(sem->fila);
-    readyThread(thread);
+    TCB_t * thread = (TCB_t*)GetAtIteratorFila2(sem->fila); //Pega uma thread da fila do semaforo
+    unblockThread(thread); //Coloca a thread na fila de aptos
+    DeleteAtIteratorFila2(sem->fila); //Deleta a thread da fila do semaforo
   }
   return SUCCESS;
 }
 
 int cidentify(char *name, int size){
-  char fullNames[] = "Guilherme Tassinari & Caroline Knorr";
-  char reducedNames[] = "GOT & CKC";
+  char fullNames[] = "Guilherme Tassinari(231060) & Caroline Knorr(229753)";
+  char reducedNames[] = "GOT(231060) & CKC(229753)";
   if(size < sizeof(fullNames)/sizeof(char)){
     if(size < sizeof(reducedNames)/sizeof(char)){
-      return ERROR;
+      return ERROR; //Retorna erro se o tamanho passado for muito pequeno
     } else {
-      name = reducedNames;
+      name = reducedNames; //escreve nomes abreviados se o tamanho permitir
     }
   } else {
-    name = fullNames;
+    name = fullNames; //Escreve os nomes completos se o tamanho permitir
   }
   return SUCCESS;
 }
@@ -129,19 +123,8 @@ int newTid(){
   return tid;
 }
 
-//TODO: testar criação de ticket randomico entre 0 e 255
 int newTicket(){
   return rand()%256;
-}
-
-void teste(){
-  printf("\numa funcao de teste\n");
-}
-
-void teste2(){
-  printf("\numa funcao de teste 2 ");
-  cyield();
-  printf("Pos yield \n");
 }
 
 void createContext(ucontext_t * context, void* (*start)(void*)){
