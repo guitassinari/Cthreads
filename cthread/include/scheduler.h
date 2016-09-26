@@ -1,5 +1,14 @@
-int sortAndExecuteThread();
-void finishExecution();
+TCB_t * sortThread();
 TCB_t * blockThread();
-int readyThread(TCB_t * thread);
+int sortAndExecuteThread();
+int waitForThread(int tid);
+int waitForThread(int tid);
+void finishExecution();
 int executeThread(TCB_t * thread);
+int readyThread(TCB_t * thread);
+TCB_t * blockThread();
+int RemoveThreadFila2(PFILA2 fila, int tid);
+int unblockThread(TCB_t * thread);
+int SearchThreadByTidFila2(PFILA2 fila, int tid);
+int initFila(PFILA2 fila);
+int yield();

@@ -5,6 +5,10 @@
 #include "../include/support.h"
 #include "../include/cthread.h"
 #include "../include/cdata.h"
+#include "../include/utils.h"
+#include "../include/scheduler.h"
+
+
 
 typedef struct s_join {
   int thread;
@@ -17,11 +21,17 @@ CreateFila2(running);
 CreateFila2(blocked);
 CreateFila2(finished);
 
-TCB_t * sortThread();
-TCB_t * blockThread();
+int initMainThread(){
+  TCB_t * mainThread = malloc(sizeof(TCB_t));
+  mainThread->tid = 0;
+  mainThread->ticket = Random2()%256;
+  getcontext(&mainThread->context);
+  AppendFila2(running, mainThread);
+  return SUCCESS;
+}
 
 int sortAndExecuteThread(){
-  TCB_t * nextThread = sortThread(nextThread); //Sorteia uma nova thread para ser executada
+  TCB_t * nextThread = sortThread(); //Sorteia uma nova thread para ser executada
   if(nextThread != NULL){
     RemoveThreadFila2(ready, nextThread->tid); //Remove a thread da fila de aptos
     executeThread(nextThread); //Executa a thread
@@ -33,7 +43,7 @@ TCB_t * sortThread(){
   TCB_t * sorted = NULL, * itThread = NULL;  //Thread de iteração
   int found = 0;
   while(!found){
-    int sortedTicket = newTicket(); //Sorteia um novo ticket
+    int sortedTicket = Random2()%256; //Sorteia um novo ticket
     if(FirstFila2(ready) != SUCCESS) return NULL; //Posiciona-se no inicio da fila de aptos
     do {  //Varre a fila até o fim procurando pelo ticket sorteado
       itThread = (TCB_t*)GetAtIteratorFila2(ready);
@@ -119,6 +129,7 @@ int executeThread(TCB_t * thread){
   thread->state = PROCST_EXEC;
   AppendFila2(running, thread); //Coloca a thread na fila de execução
   setcontext(&(thread->context)); //Executa o contexto da thread
+  return SUCCESS;
 }
 
 //adiciona a thread na fila de aptos para execução
@@ -126,6 +137,7 @@ int readyThread(TCB_t * thread){
   initFila(ready);
   thread->state = PROCST_APTO;
   AppendFila2(ready, thread);
+  return SUCCESS;
 }
 
 TCB_t * blockThread(){

@@ -6,30 +6,15 @@
 #include "../include/cthread.h"
 #include "../include/cdata.h"
 #include "../include/scheduler.h"
+#include "../include/utils.h"
 
-#define STACK_SIZE 1024*32
-
-int tid = 0;
-int newTid();
-int newTicket();
-
-int main(){
-  TCB_t * mainThread = malloc(sizeof(TCB_t));
-  mainThread->tid = 0;
-  mainThread->ticket = newTicket();
-  ucontext_t * context = malloc(sizeof(ucontext_t));
-  int * isCommingBack = malloc(sizeof(int));
-  *isCommingBack = 1;
-  getcontext(&context);
-  if(*isCommingBack == 1){
-    *isCommingBack = 0;
-    mainThread->context = *context;
-    readyThread(mainThread);
-  }
-  free(isCommingBack);
-}
+int firstTime = 0;
 
 int ccreate (void* (*start)(void*), void *arg){
+  if(firstTime == 0){
+    firstTime = 1;
+    initMainThread();
+  }
   if(start == NULL) return ERROR;
   ucontext_t * threadContext = malloc(sizeof(ucontext_t)); //Aloca memória para um contexto
   createContext(threadContext, start); //Cria o contexto para a nova thread
@@ -38,12 +23,6 @@ int ccreate (void* (*start)(void*), void *arg){
   createThread(newThread, threadContext);
   readyThread(newThread);
   return newThread->tid;
-}
-
-void createThread(TCB_t * thread, ucontext_t * context){
-  thread->tid = newTid();
-  thread->ticket = newTicket();
-  thread->context = *context;
 }
 
 int cyield(void){
@@ -116,30 +95,4 @@ int csem_init (csem_t *sem, int count){
   sem->fila = malloc(sizeof(PFILA2));
   CreateFila2(sem->fila);
   return SUCCESS;
-}
-
-int newTid(){
-  tid++;
-  return tid;
-}
-
-int newTicket(){
-  return rand()%256;
-}
-
-void createContext(ucontext_t * context, void* (*start)(void*)){
-  ucontext_t * returnContext = malloc(sizeof(ucontext_t));
-  getcontext(returnContext);
-  returnContext->uc_stack.ss_sp = malloc(STACK_SIZE);
-  returnContext->uc_stack.ss_size = STACK_SIZE;
-  returnContext->uc_stack.ss_flags = 0;
-  context->uc_link = 0;
-  makecontext(returnContext, (void*)&finishExecution, 0);
-
-  getcontext(context);
-  context->uc_stack.ss_sp = malloc(STACK_SIZE);
-  context->uc_stack.ss_size = STACK_SIZE;
-  context->uc_stack.ss_flags = 0;
-  context->uc_link = returnContext;
-  makecontext(context, (void*)start, 0);
 }

@@ -16,11 +16,17 @@ INC_DIR=./include
 BIN_DIR=./bin
 SRC_DIR=./src
 
-all: cthread.o
-	ar rcs $(LIB_DIR)/libcthread.a $(BIN_DIR)/cthread.o $(BIN_DIR)/support.o
+all: cthread.o scheduler.o utils.o
+	ar rcs $(LIB_DIR)/libcthread.a $(BIN_DIR)/cthread.o $(BIN_DIR)/scheduler.o $(BIN_DIR)/utils.o $(BIN_DIR)/support.o
 
 cthread.o:
-	$(CC) -g -o $(BIN_DIR)/cthread.o $(BIN_DIR)/support.o $(SRC_DIR)/cthread.c $(SRC_DIR)/scheduler.c -Wall
+	$(CC) -c -o $(BIN_DIR)/cthread.o $(SRC_DIR)/cthread.c -Wall
+
+scheduler.o:
+	$(CC) -c -o $(BIN_DIR)/scheduler.o $(SRC_DIR)/scheduler.c -Wall
+
+utils.o:
+	$(CC) -c -o $(BIN_DIR)/utils.o $(SRC_DIR)/utils.c -Wall
 
 clean:
 	rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/cthread.o
