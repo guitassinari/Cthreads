@@ -8,8 +8,6 @@
 #include "../include/utils.h"
 #include "../include/scheduler.h"
 
-
-
 typedef struct s_join {
   int thread;
   int threadToWait;
@@ -17,11 +15,9 @@ typedef struct s_join {
 
 ucontext_t MAIN_CONTEXT;
 PFILA2 ready, running, blocked, finished, joints;
-CreateFila2(running);
-CreateFila2(blocked);
-CreateFila2(finished);
 
 int initMainThread(){
+  initFila(&running);
   TCB_t * mainThread = malloc(sizeof(TCB_t));
   mainThread->tid = 0;
   mainThread->ticket = Random2()%256;
@@ -64,7 +60,7 @@ TCB_t * sortThread(){
 }
 
 int waitForThread(int tid){
-  initFila(joints);
+  initFila(&joints);
   joint * join;
   FirstFila2(joints);
   do {  //Varre a fila de espera procurando por alguma thread esteja esperando a thread solicitada
@@ -93,8 +89,8 @@ int waitForThread(int tid){
 }
 
 void finishExecution(){
-  initFila(finished);
-  initFila(joints);
+  initFila(&finished);
+  initFila(&joints);
   FirstFila2(running);
   TCB_t * thread = (TCB_t*)GetAtIteratorFila2(running); //Pega a thread da fila de execução
   joint * join;
@@ -125,7 +121,7 @@ int yield(){
 }
 
 int executeThread(TCB_t * thread){
-  initFila(running);
+  initFila(&running);
   thread->state = PROCST_EXEC;
   AppendFila2(running, thread); //Coloca a thread na fila de execução
   setcontext(&(thread->context)); //Executa o contexto da thread
@@ -134,7 +130,7 @@ int executeThread(TCB_t * thread){
 
 //adiciona a thread na fila de aptos para execução
 int readyThread(TCB_t * thread){
-  initFila(ready);
+  initFila(&ready);
   thread->state = PROCST_APTO;
   AppendFila2(ready, thread);
   return SUCCESS;
@@ -179,10 +175,10 @@ int SearchThreadByTidFila2(PFILA2 fila, int tid){
   return ERROR;
 }
 
-int initFila(PFILA2 fila){
-  if(fila == NULL){ //inicializa a fila de aptos, se necessário
-    fila = malloc(sizeof(PFILA2));
-    CreateFila2(fila);
+int initFila(PFILA2 * fila){
+  if(*fila == NULL){ //inicializa a fila de aptos, se necessário
+    *fila = malloc(sizeof(PFILA2));
+    CreateFila2(*fila);
   }
   return SUCCESS;
 }
