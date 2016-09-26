@@ -16,9 +16,12 @@ INC_DIR=./include
 BIN_DIR=./bin
 SRC_DIR=./src
 
-all: create.o
+all: create
 
-create.o:
+semaphores:
+	$(CC) semaphores.c ../lib/libcthread.a -Wall
+
+create:
 	$(CC) create.c ../lib/libcthread.a -Wall
 
 clean:

@@ -38,14 +38,13 @@ int sortAndExecuteThread(){
 TCB_t * sortThread(){
   TCB_t * sorted = NULL, * itThread = NULL;  //Thread de iteração
   int found = 0;
-  while(!found){
+  while(found == 0){
     int sortedTicket = Random2()%256; //Sorteia um novo ticket
     if(FirstFila2(ready) != SUCCESS) return NULL; //Posiciona-se no inicio da fila de aptos
     do {  //Varre a fila até o fim procurando pelo ticket sorteado
       itThread = (TCB_t*)GetAtIteratorFila2(ready);
       if(itThread == NULL) break;
       if((itThread->ticket == sortedTicket) && (sorted == NULL || sorted->tid < itThread->tid)){
-        found = 1;
         /*
           Se encontrar o ticket e:
            não houver uma thread ja sorteada,
@@ -55,6 +54,7 @@ TCB_t * sortThread(){
         sorted = itThread;
       }
     }while(NextFila2(ready) == SUCCESS);
+    if(sorted != NULL) found = 1;
   }
   return sorted;
 }
