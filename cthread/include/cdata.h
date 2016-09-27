@@ -16,12 +16,13 @@
 #define SUCCESS 0
 #define ERROR -1
 
+
 /* N�O ALTERAR ESSA struct */
 typedef struct s_TCB {
 	int		tid; 		// identificador da thread
 	int		state;		// estado em que a thread se encontra
 					// 0: Cria��o; 1: Apto; 2: Execu��o; 3: Bloqueado e 4: T�rmino
-    int		ticket;		// 0-255: bilhete de loteria da thread
+  int		ticket;		// 0-255: bilhete de loteria da thread
 	ucontext_t 	context;	// contexto de execu��o da thread (SP, PC, GPRs e recursos)
 } TCB_t;
 

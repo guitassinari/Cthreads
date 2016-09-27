@@ -16,17 +16,13 @@ INC_DIR=./include
 BIN_DIR=./bin
 SRC_DIR=./src
 
-all: cthread.o scheduler.o utils.o
-	ar rcs $(LIB_DIR)/libcthread.a $(BIN_DIR)/cthread.o $(BIN_DIR)/scheduler.o $(BIN_DIR)/utils.o $(BIN_DIR)/support.o
+all: create
 
-cthread.o:
-	$(CC) -c -o $(BIN_DIR)/cthread.o $(SRC_DIR)/cthread.c -Wall
+semaphores:
+	$(CC) semaphores.c ../lib/libcthread.a -Wall
 
-scheduler.o:
-	$(CC) -c -o $(BIN_DIR)/scheduler.o $(SRC_DIR)/scheduler.c -Wall
-
-utils.o:
-	$(CC) -c -o $(BIN_DIR)/utils.o $(SRC_DIR)/utils.c -Wall
+create:
+	$(CC) create.c ../lib/libcthread.a -Wall
 
 clean:
-	rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/cthread.o
+	rm -rf ./*.o
